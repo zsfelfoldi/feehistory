@@ -4,6 +4,6 @@ This repository provides support material for EIP-1559 transaction fee parameter
 
 - original API [proposal](https://github.com/zsfelfoldi/feehistory/blob/main/docs/feeHistory.md)
 - API [specification](https://github.com/ethereum/eth1.0-specs/blob/master/json-rpc/spec.json#L200)
-- `feeOracle` [example code](https://github.com/zsfelfoldi/feehistory/blob/main/js/feeOracle.js)
-- `feeOracle` [description](https://github.com/zsfelfoldi/feehistory/blob/main/docs/feeOracle.md)
+- Fee Oracle [example code](https://github.com/zsfelfoldi/feehistory/blob/main/js/feeOracle.js)
+- Fee Oracle [description](https://github.com/zsfelfoldi/feehistory/blob/main/docs/feeOracle.md)
 

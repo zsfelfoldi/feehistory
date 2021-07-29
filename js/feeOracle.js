@@ -9,7 +9,7 @@ var sampleMin = 0.1;
 var sampleMax = 0.3;
 var maxTimeFactor = 15;
 var extraTipRatio = 0.25;
-var fallbackTip = 5e9;
+var fallbackTip = 2e9;
 
 /*
 suggestFees returns a series of maxFeePerGas / maxPriorityFeePerGas values suggested for different time preferences. The first element corresponds to the highest time preference (most urgent transaction).
@@ -18,7 +18,7 @@ The basic idea behind the algorithm is similar to the old "gas price oracle" use
 function suggestFees() {
     // feeHistory API call without a reward percentile specified is cheap even with a light client backend because it only needs block headers.
     // Therefore we can afford to fetch a hundred blocks of base fee history in order to make meaningful estimates on variable time scales.
-    var feeHistory = eth.feeHistory(100, "latest");
+    var feeHistory = eth.feeHistory("0x64", "latest");
     var baseFee = []
     var order = [];
     for (var i = 0; i < feeHistory.baseFeePerGas.length; i++) {
@@ -47,7 +47,7 @@ function suggestFees() {
         return 0;
     })
 
-    var tip = suggestTip(feeHistory.oldestBlock, feeHistory.gasUsedRatio);
+    var tip = suggestTip(parseInt(feeHistory.oldestBlock, 16), feeHistory.gasUsedRatio);
     var result = [];
     var maxBaseFee = 0;
     for (var timeFactor = maxTimeFactor; timeFactor >= 0; timeFactor--) {
@@ -79,7 +79,7 @@ function suggestTip(firstBlock, gasUsedRatio) {
         var blockCount = maxBlockCount(gasUsedRatio, ptr, needBlocks);
         if (blockCount > 0) {
             // feeHistory API call with reward percentile specified is expensive and therefore is only requested for a few non-full recent blocks.
-            var feeHistory = eth.feeHistory(blockCount, firstBlock + ptr, [10]);
+            var feeHistory = eth.feeHistory("0x"+blockCount.toString(16), firstBlock + ptr, [0]);
             for (var i = 0; i < feeHistory.reward.length; i++) {
                 rewards.push(parseInt(feeHistory.reward[i][0]));
             }
@@ -98,11 +98,11 @@ function suggestTip(firstBlock, gasUsedRatio) {
     return rewards[Math.floor(rewards.length / 2)];
 }
 
-// maxBlockCount returns the number of consecutive blocks suitable for tip suggestion (gasUsedRatio between 0.1 and 0.9).
+// maxBlockCount returns the number of consecutive blocks suitable for tip suggestion (gasUsedRatio non-zero and not higher than 0.9).
 function maxBlockCount(gasUsedRatio, ptr, needBlocks) {
     var blockCount = 0;
     while (needBlocks > 0 && ptr >= 0) {
-        if (gasUsedRatio[ptr] < 0.1 || gasUsedRatio[ptr] > 0.9) {
+        if (gasUsedRatio[ptr] == 0 || gasUsedRatio[ptr] > 0.9) {
             break;
         }
         ptr--;
