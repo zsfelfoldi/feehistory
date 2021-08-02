@@ -1,5 +1,5 @@
 /*
-Fee Oracle
+Economical Fee Oracle
 EIP-1559 transaction fee parameter suggestion algorithm based on the eth_feeHistory API
 Author: Zsolt Felfoldi (zsfelfoldi@ethereum.org)
 Description: https://github.com/zsfelfoldi/feehistory/blob/main/docs/feeOracle.md

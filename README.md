@@ -5,5 +5,6 @@ This repository provides support material for EIP-1559 transaction fee parameter
 - original API [proposal](https://github.com/zsfelfoldi/feehistory/blob/main/docs/feeHistory.md)
 - API [specification](https://github.com/ethereum/eth1.0-specs/blob/master/json-rpc/spec.json#L200)
 - Economical Fee Oracle [example code](https://github.com/zsfelfoldi/feehistory/blob/main/js/feeOracle.js)
+	- Note that Geth 1.10.6 implements the `eth_feeHistory` incorrectly (uses decimal instead of hex values for `blockCount` and `oldestBlock`). The script will not work correctly with this release version. The bug is already fixed on the master branch and is going to be included in the next release. 
 - Economical Fee Oracle [description](https://github.com/zsfelfoldi/feehistory/blob/main/docs/feeOracle.md)
 

@@ -2,13 +2,13 @@
 
 Author: Zsolt Felfoldi (zsfelfoldi@ethereum.org)
 
-The [Fee Oracle](https://github.com/zsfelfoldi/feehistory/blob/main/js/feeOracle.js) is provided as an example for an EIP-1559 transaction fee calculation algorithm based on the `eth_feeHistory` API.
+The [Economical Fee Oracle](https://github.com/zsfelfoldi/feehistory/blob/main/js/feeOracle.js) is provided as an example for an EIP-1559 transaction fee calculation algorithm based on the `eth_feeHistory` API.
 
 ### Usage
 
 This "oracle" calculates suggested fees for different time preferences. The function `suggestFees()` returns a list of suggested `maxFeePerGas` / `maxPriorityFeePerGas` pairs where the index of the list is the `timeFactor`. A low `timeFactor` should be used for urgent transactions while higher values yield more economical suggestions that are expected to require more blocks to get included with a given chance. Note that the relationship between `timeFactor` and inclusion chance in future blocks is not exactly determined but depends on the market behavior. Some rough estimates for this relationship might be calculated once we have actual market data to analyze.
 
-The application frontend might display the fees vs time factor as a bar graph or curve. The steepness of this curve might also give a hint to users on whether there is currently a local congestion.
+The application frontend might display the suggested fees vs time factor as a bar graph or curve. The steepness of this curve might also give a hint to users on whether there is currently a local congestion.
 
 ### Algorithm
 
@@ -24,7 +24,9 @@ The resulting suggestion is on the lower end of the effective rewards of recentl
 
 The oracle tries to offer economical fee suggestions based on the assumption that `baseFee` usually fluctuates around a market equilibrium and therefore past `baseFee` history in a given timeframe is a somewhat good indicator of future fluctuation in a similar timeframe. This assumption might not apply when fundamental market conditions are changed but if the initial, economical fee suggestion does not succeed in getting the transaction included then the offered fees can still be increased.
 
-Base fees of full blocks (where `gasUsedRatio > 0.9`) are not considered relevant because getting in those blocks might have required excessive priority fees offsetting the `baseFee` difference compared to the next block. Therefore the base fee history is preprocessed in a way that the base fee of every full block is replaced by that of the next non-full block. The last (pending) block is also assumed to be full and its `baseFee` value is multiplied by `9/8` which yields the assumed `baseFee` of the next block in case the pending one indeed ends up full. This is a worst case estimation that gives some upwards bias to more urgent (low `timeFactor`) suggestions. Finally the pre-processed `baseFee` history is exponentially weighted with `Math.exp(block.age / timeFactor)` and the percentile range between `sampleMinPercentile` and `sampleMaxPercentile` is averaged out with a half-sine time window function.
+Base fees of full blocks (where `gasUsedRatio > 0.9`) are not considered relevant because getting in those blocks might have required excessive priority fees offsetting the `baseFee` difference compared to the next block. Therefore the base fee history is preprocessed in a way that the base fee of every full block is replaced by that of the next non-full block. The last (pending) block is also assumed to be full and its `baseFee` value is multiplied by `9/8` which yields the assumed `baseFee` of the next block in case the pending one indeed ends up full. This is a worst case estimation that gives some upwards bias to more urgent (low `timeFactor`) suggestions.
+
+Finally, for each `timeFactor` the pre-processed `baseFee` history is weighted with a proportionally sized exponential time window (each block's value is weighted with `Math.exp(block.age / timeFactor)`) and the percentile range between `sampleMinPercentile` and `sampleMaxPercentile` is averaged out with a half-sine time window function. This yields a predicted base fee value as a function of `timeFactor`.
 
 #### Final fee parameter suggestions
 
@@ -38,7 +40,7 @@ maxFeePerGas = predictedBaseFee[timeFactor] + suggestedPriorityFee
 On the other hand, if `predictedBaseFee` increases with `timeFactor` then the `baseFee` is currently unusually low compared to longer term history. In this case we assume that it might rise back soon, meaning that we can't necessarily expect to fit into the next few blocks with the minimum necessary priority fee because there might be a competition for getting into those blocks with a lower base fee. For this reason we define `maxBaseFeeAfter[timeFactor] =  MAX(predictedBaseFee[i])` where `i >= timeFactor` and the final formula looks like this:
 
 ```
-maxPriorityFeePerGas = suggestedPriorityFee	+ (maxBaseFeeAfter[timeFactor] - predictedBaseFee[timeFactor]) * extraPriorityFeeRatio
+maxPriorityFeePerGas = suggestedPriorityFee + (maxBaseFeeAfter[timeFactor] - predictedBaseFee[timeFactor]) * extraPriorityFeeRatio
 maxFeePerGas = maxBaseFeeAfter[timeFactor] + suggestedPriorityFee
 ```
 
