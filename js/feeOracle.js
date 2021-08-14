@@ -8,7 +8,7 @@ Description: https://github.com/zsfelfoldi/feehistory/blob/main/docs/feeOracle.m
 var sampleMinPercentile = 10;	// sampled percentile range of exponentially weighted baseFee history
 var sampleMaxPercentile = 30;
 
-var rewardPercentile = 10;		// effertive reward value to be selected from each individual block
+var rewardPercentile = 10;		// effective reward value to be selected from each individual block
 var rewardBlockPercentile = 40; // suggested priority fee to be selected from sorted individual block reward percentiles
 
 var maxTimeFactor = 15;				// highest timeFactor index in the returned list of suggestion
@@ -17,7 +17,7 @@ var fallbackPriorityFee = 2e9;		// priority fee offered when there are no recent
 
 /*
 suggestFees returns a series of maxFeePerGas / maxPriorityFeePerGas values suggested for different time preferences. The first element corresponds to the highest time preference (most urgent transaction).
-The basic idea behind the algorithm is similar to the old "gas price oracle" used in Geth; it takes the prices of recent blocks and makes a suggestion based on a low percentile of those prices. With EIP-1559 though the base fee of each block provides a less noisy and more reliable price signal. This allows for more sophisticated suggestions with a variable width (exponentially weighted) base fee time window. The window width corresponds to the time preference of the user. The underlying assumption is that price fluctuations over a given past time period indicate the probabilty of similar price levels being re-tested by the market over a similar length future time period.
+The basic idea behind the algorithm is similar to the old "gas price oracle" used in Geth; it takes the prices of recent blocks and makes a suggestion based on a low percentile of those prices. With EIP-1559 though the base fee of each block provides a less noisy and more reliable price signal. This allows for more sophisticated suggestions with a variable width (exponentially weighted) base fee time window. The window width corresponds to the time preference of the user. The underlying assumption is that price fluctuations over a given past time period indicate the probability of similar price levels being re-tested by the market over a similar length future time period.
 */
 function suggestFees() {
     // feeHistory API call without a reward percentile specified is cheap even with a light client backend because it only needs block headers.
