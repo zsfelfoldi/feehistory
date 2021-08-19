@@ -9,7 +9,7 @@ var sampleMaxPercentile = 30;
 
 var maxRewardPercentile = 20; // effertive reward value to be selected from each individual block
 var minBlockPercentile = 40; // economical priority fee to be selected from sorted individual block reward percentiles
-var maxBlockPercentile = 80; // urgent priority fee to be selected from sorted individual block reward percentiles
+var maxBlockPercentile = 70; // urgent priority fee to be selected from sorted individual block reward percentiles
 
 var maxTimeFactor = 128; // highest timeFactor in the returned list of suggestions (power of 2)
 var extraPriorityFeeRatio = 0.25; // extra priority fee offered in case of expected baseFee rise
@@ -53,21 +53,21 @@ function suggestFeesAt(head) {
     var maxBaseFee = 0;
     for (var timeFactor = maxTimeFactor; timeFactor >= 1; timeFactor /= 2) {
         var priorityFee = suggestPriorityFee(rewards, timeFactor);
-        var bf = predictMinBaseFee(baseFee, order, timeFactor - 1);
-        var t = priorityFee;
-        if (bf > maxBaseFee) {
-            maxBaseFee = bf;
+        var minBaseFee = predictMinBaseFee(baseFee, order, timeFactor - 1);
+        var extraFee = 0;
+        if (minBaseFee > maxBaseFee) {
+            maxBaseFee = minBaseFee;
         } else {
             // If a narrower time window yields a lower base fee suggestion than a wider window then we are probably in a price dip.
             // In this case getting included with a low priority fee is not guaranteed; instead we use the higher base fee suggestion
             // and also offer extra priority fee to increase the chance of getting included in the base fee dip.
-            t += (maxBaseFee - bf) * extraPriorityFeeRatio;
-            bf = maxBaseFee;
+            extraFee = (maxBaseFee - minBaseFee) * extraPriorityFeeRatio;
+            minBaseFee = maxBaseFee;
         }
         result.push({
             timeFactor: timeFactor,
-            maxFeePerGas: bf + priorityFee,
-            maxPriorityFeePerGas: t
+            maxFeePerGas: minBaseFee + priorityFee,
+            maxPriorityFeePerGas: priorityFee + extraFee
         });
     }
     result.reverse();
@@ -119,13 +119,13 @@ function collectRewards(firstBlock, gasUsedRatio) {
 }
 
 // maxBlockCount returns the number of consecutive blocks suitable for priority fee suggestion (gasUsedRatio non-zero and not higher than 0.9).
-function maxBlockCount(gasUsedRatio, ptr, needBlocks) {
+function maxBlockCount(gasUsedRatio, lastIndex, needBlocks) {
     var blockCount = 0;
-    while (needBlocks > 0 && ptr >= 0) {
-        if (gasUsedRatio[ptr] == 0 || gasUsedRatio[ptr] > 0.9) {
+    while (needBlocks > 0 && lastIndex >= 0) {
+        if (gasUsedRatio[lastIndex] == 0 || gasUsedRatio[lastIndex] > 0.9) {
             break;
         }
-        ptr--;
+        lastIndex--;
         needBlocks--;
         blockCount++;
     }
@@ -199,19 +199,17 @@ function canInclude(maxFee, priorityFee, blockDelay, actual) {
 
 // dumpFees returns the fee history data of the specified range in decimal form.
 function dumpFees(len, block) {
-    var fh = eth.feeHistory(len, block, [10]);
-    var bf = fh.baseFeePerGas;
-    var bfd = [];
-    for (var i = 0; i < bf.length - 1; i++) {
-        bfd.push(parseInt(bf[i]));
-    }
+    var feeHistory = eth.feeHistory(len, block, [10]);
+    var baseFee = feeHistory.baseFeePerGas;
+    var baseFeeDecimal = [];
     var reward = [];
-    for (var i = 0; i < bf.length - 1; i++) {
-        reward.push(parseInt(fh.reward[i][0]));
+    for (var i = 0; i < baseFee.length - 1; i++) {
+        baseFeeDecimal.push(parseInt(baseFee[i]));
+        reward.push(parseInt(feeHistory.reward[i][0]));
     }
     return {
-        baseFee: bfd,
-        gasUsed: fh.gasUsedRatio,
+        baseFee: baseFeeDecimal,
+        gasUsed: feeHistory.gasUsedRatio,
         reward: reward
     };
 }
